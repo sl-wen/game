@@ -1,3 +1,5 @@
+import { CharacterStats } from './GameConfig';
+
 export const GAME_CONFIG = {
   // 游戏基础配置
   width: 800,
@@ -10,14 +12,24 @@ export const GAME_CONFIG = {
     scale: 1,
     hitbox: {
       width: 12,
-      height: 14,
+      height: 16,
       offsetX: 2,
-      offsetY: 2
+      offsetY: 0
     },
     startPosition: {
       x: 200,
       y: 200
-    }
+    },
+    initialStats: {
+      level: 1,
+      maxHealth: 100,
+      currentHealth: 100,
+      maxMp: 100,
+      mp: 100,
+      exp: 0,
+      attackDamage: 20,
+      defense: 5
+    } as CharacterStats
   },
   
   // 相机配置

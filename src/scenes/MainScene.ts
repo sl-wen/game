@@ -3,6 +3,7 @@ import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { CharacterPanel } from '../ui/CharacterPanel';
 import { BANDIT_CONFIG } from '../config/enemy';
+import { CharacterStats } from '../config/GameConfig';
 
 export class MainScene extends Scene {
     private player?: Player;

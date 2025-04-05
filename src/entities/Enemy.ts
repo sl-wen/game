@@ -14,6 +14,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     private player?: Player;
     private healthBar: Phaser.GameObjects.Graphics;
     private stateText: Phaser.GameObjects.Text;
+    private isDead: boolean = false;
+    private updateTimer?: Phaser.Time.TimerEvent;
 
     constructor(scene: Phaser.Scene, x: number, y: number, config: EnemyConfig, player: Player) {
         super(scene, x, y, 'bandit_idle', 0);
@@ -51,46 +53,48 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         });
         
         // 开始AI循环
-        this.updateAI();
-    }
-
-    private updateAI(): void {
-        // 每100ms更新一次AI状态
-        this.scene.time.addEvent({
+        this.updateTimer = scene.time.addEvent({
             delay: 100,
-            callback: () => {
-                const distanceToPlayer = this.player ? 
-                    Phaser.Math.Distance.Between(
-                        this.x, this.y,
-                        this.player.x, this.player.y
-                    ) : Infinity;
-
-                // 状态机逻辑
-                switch (this.state) {
-                    case 'idle':
-                        this.handleIdleState(distanceToPlayer);
-                        break;
-                    case 'patrol':
-                        this.handlePatrolState(distanceToPlayer);
-                        break;
-                    case 'chase':
-                        this.handleChaseState(distanceToPlayer);
-                        break;
-                    case 'attack':
-                        this.handleAttackState(distanceToPlayer);
-                        break;
-                    case 'return':
-                        this.handleReturnState();
-                        break;
-                }
-
-                this.updateStateText();
-            },
+            callback: this.updateAI,
+            callbackScope: this,
             loop: true
         });
     }
 
+    private updateAI(): void {
+        if (this.isDead || !this.player) return;
+
+        const distanceToPlayer = Phaser.Math.Distance.Between(
+            this.x, this.y,
+            this.player.x, this.player.y
+        );
+
+        switch (this.state) {
+            case 'idle':
+                this.handleIdleState(distanceToPlayer);
+                break;
+            case 'patrol':
+                this.handlePatrolState(distanceToPlayer);
+                break;
+            case 'chase':
+                this.handleChaseState(distanceToPlayer);
+                break;
+            case 'attack':
+                this.handleAttackState(distanceToPlayer);
+                break;
+            case 'return':
+                this.handleReturnState();
+                break;
+        }
+
+        // 更新UI元素
+        this.updateHealthBar();
+        this.updateStateText();
+    }
+
     private handleIdleState(distanceToPlayer: number): void {
+        if (this.isDead) return;
+
         if (distanceToPlayer <= this.stats.detectionRange) {
             this.setEnemyState('chase');
         } else if (Date.now() - this.lastStateChangeTime > this.config.ai.patrolWaitTime) {
@@ -100,6 +104,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     private handlePatrolState(distanceToPlayer: number): void {
+        if (this.isDead) return;
+
         if (distanceToPlayer <= this.stats.detectionRange) {
             this.setEnemyState('chase');
             return;
@@ -125,9 +131,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     private handleChaseState(distanceToPlayer: number): void {
-        if (!this.player) return;
+        if (this.isDead || !this.player) return;
 
-        // 只有当距离超过检测范围的1.5倍，并且距离出生点超过巡逻半径时才返回
         if (distanceToPlayer > this.stats.detectionRange * 1.5) {
             const distanceToSpawn = Phaser.Math.Distance.Between(
                 this.x, this.y,
@@ -152,19 +157,41 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     private handleAttackState(distanceToPlayer: number): void {
+        if (this.isDead) return;
+
         if (distanceToPlayer > this.stats.attackRange) {
             this.setEnemyState('chase');
             return;
         }
 
-        const currentTime = Date.now();
-        if (currentTime - this.lastAttackTime >= this.config.ai.attackCooldown) {
-            this.attack();
-            this.lastAttackTime = currentTime;
+        // 如果可以攻击
+        if (Date.now() - this.lastAttackTime > this.config.ai.attackCooldown) {
+            this.lastAttackTime = Date.now();
+            
+            // 播放攻击动画
+            this.play('bandit_attack', true);
+            
+            // 创建攻击判定区域
+            const attackBox = new Phaser.Geom.Rectangle(
+                this.flipX ? this.x - 32 : this.x,
+                this.y - 8,
+                32,
+                32
+            );
+            
+            // 检查是否击中玩家
+            if (this.player) {
+                const playerBounds = this.player.getBounds();
+                if (Phaser.Geom.Rectangle.Overlaps(attackBox, playerBounds)) {
+                    this.player.takeDamage(this.stats.attackDamage);
+                }
+            }
         }
     }
 
     private handleReturnState(): void {
+        if (this.isDead) return;
+
         // 首先检查是否发现玩家
         if (this.player) {
             const distanceToPlayer = Phaser.Math.Distance.Between(
@@ -193,6 +220,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     private moveToTarget(target: Phaser.Math.Vector2, speed: number): void {
+        if (this.isDead) return;
+
         const angle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
         const velocityX = Math.cos(angle) * speed;
         const velocityY = Math.sin(angle) * speed;
@@ -201,10 +230,15 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         body.setVelocity(velocityX, velocityY);
 
         // 更新朝向
-        this.flipX = velocityX < 0;
+        this.setFlipX(velocityX < 0);
+
+        // 播放移动动画
+        this.play('bandit_walk', true);
     }
 
     private setNewPatrolTarget(): void {
+        if (this.isDead) return;
+
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * this.config.ai.patrolRadius;
         
@@ -214,75 +248,95 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         );
     }
 
+    takeDamage(damage: number): void {
+        if (this.isDead) return;
+
+        const actualDamage = Math.max(1, damage - this.stats.defense);
+        this.stats.currentHealth = Math.max(0, this.stats.currentHealth - actualDamage);
+        
+        // 更新血条
+        this.updateHealthBar();
+        
+        // 如果生命值为0，处理死亡
+        if (this.stats.currentHealth <= 0) {
+            this.die();
+            return;
+        }
+        
+        // 受到攻击时切换到追击状态
+        this.setEnemyState('chase');
+    }
+
+    private updateHealthBar(): void {
+        if (this.isDead) return;
+
+        this.healthBar.clear();
+        
+        // 计算血条位置（在角色头顶）
+        const barX = this.x - 20;
+        const barY = this.y - 25;
+        
+        // 血条背景
+        this.healthBar.fillStyle(0x000000, 0.5);
+        this.healthBar.fillRect(barX, barY, 40, 5);
+        
+        // 当前血量
+        const healthPercentage = this.stats.currentHealth / this.stats.maxHealth;
+        this.healthBar.fillStyle(0xff0000, 1);
+        this.healthBar.fillRect(barX, barY, 40 * healthPercentage, 5);
+    }
+
+    private updateStateText(): void {
+        if (this.isDead) {
+            this.stateText.setVisible(false);
+            return;
+        }
+
+        // 更新状态文本位置（在血条上方）
+        this.stateText.setPosition(this.x - 20, this.y - 35);
+        this.stateText.setText(this.state);
+    }
+
     private setEnemyState(newState: EnemyState): void {
+        if (this.isDead) return;
+
         if (this.state !== newState) {
             this.state = newState;
             this.lastStateChangeTime = Date.now();
         }
     }
 
-    private attack(): void {
-        if (!this.player) return;
-        
-        // 播放攻击动画
-        this.play('bandit_attack', true);
-        
-        // 造成伤害
-        // TODO: 实现玩家受伤逻辑
-    }
-
-    public takeDamage(damage: number): void {
-        this.stats.hp = Math.max(0, this.stats.hp - damage);
-        this.updateHealthBar();
-        
-        if (this.stats.hp <= 0) {
-            this.die();
-        }
-    }
-
     private die(): void {
+        this.isDead = true;
+        this.state = 'idle';
+        
+        // 停止AI更新
+        if (this.updateTimer) {
+            this.updateTimer.destroy();
+        }
+        
+        // 停止所有移动
+        const body = this.body as Phaser.Physics.Arcade.Body;
+        body.setVelocity(0, 0);
+        
+        // 清除血条和状态文本
+        this.healthBar.clear();
+        this.stateText.setVisible(false);
+        
         // 播放死亡动画
-        this.play('bandit_die', true);
-        this.once('animationcomplete', () => {
+        this.play('bandit_die', true).once('animationcomplete', () => {
+            // 从敌人数组中移除
+            const scene = this.scene as any;
+            if (scene.enemies) {
+                const index = scene.enemies.indexOf(this);
+                if (index > -1) {
+                    scene.enemies.splice(index, 1);
+                }
+            }
+            
+            // 销毁对象
             this.destroy();
         });
-    }
-
-    private updateHealthBar(): void {
-        this.healthBar.clear();
-        
-        // 血条背景
-        this.healthBar.fillStyle(0x000000, 0.5);
-        this.healthBar.fillRect(-20, -25, 40, 5);
-        
-        // 血条
-        const healthPercentage = this.stats.hp / this.stats.maxHp;
-        this.healthBar.fillStyle(0xff0000, 1);
-        this.healthBar.fillRect(-20, -25, 40 * healthPercentage, 5);
-    }
-
-    private updateStateText(): void {
-        this.stateText.setText(this.state);
-        this.stateText.setPosition(this.x - 15, this.y - 35);
-    }
-
-    update(): void {
-        // 更新血条位置
-        this.healthBar.setPosition(this.x, this.y);
-        
-        // 根据移动更新动画
-        const body = this.body as Phaser.Physics.Arcade.Body;
-        if (Math.abs(body.velocity.x) > 10 || Math.abs(body.velocity.y) > 10) {
-            this.play('bandit_walk', true);
-        } else if (this.state !== 'attack') {
-            this.play('bandit_idle', true);
-        }
-    }
-
-    destroy(): void {
-        this.healthBar.destroy();
-        this.stateText.destroy();
-        super.destroy();
     }
 
     // 重写基类的setState方法以满足类型要求
