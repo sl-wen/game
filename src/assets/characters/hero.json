@@ -1,0 +1,36 @@
+{
+    "frames": {
+        "idle": {
+            "frame": {"x": 0, "y": 0, "w": 32, "h": 48},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x": 0, "y": 0, "w": 32, "h": 48},
+            "sourceSize": {"w": 32, "h": 48}
+        },
+        "walk": {
+            "frame": {"x": 32, "y": 0, "w": 32, "h": 48},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x": 0, "y": 0, "w": 32, "h": 48},
+            "sourceSize": {"w": 32, "h": 48}
+        },
+        "attack": {
+            "frame": {"x": 64, "y": 0, "w": 48, "h": 48},
+            "rotated": false,
+            "trimmed": false,
+            "spriteSourceSize": {"x": 0, "y": 0, "w": 48, "h": 48},
+            "sourceSize": {"w": 48, "h": 48}
+        }
+    },
+    "meta": {
+        "image": "hero.png",
+        "format": "RGBA8888",
+        "size": {"w": 112, "h": 48},
+        "scale": "1",
+        "frameTags": [
+            {"name": "idle", "from": 0, "to": 0},
+            {"name": "walk", "from": 1, "to": 1},
+            {"name": "attack", "from": 2, "to": 2}
+        ]
+    }
+} 
