@@ -4,7 +4,12 @@ import { Enemy } from '../entities/Enemy';
 import { CharacterPanel } from '../ui/CharacterPanel';
 import { BANDIT_CONFIG } from '../config/enemy';
 import { CharacterStats } from '../config/GameConfig';
+import { ANIMATION_CONFIG } from '../config/animations';
 
+/**
+ * 主场景类
+ * 负责游戏场景的初始化、资源加载和游戏逻辑
+ */
 export class MainScene extends Scene {
     private player?: Player;
     private enemies: Enemy[] = [];
@@ -17,11 +22,15 @@ export class MainScene extends Scene {
     private interiorTileset!: Phaser.Tilemaps.Tileset;
     private characterPanel?: CharacterPanel;
     private menuKey?: Phaser.Input.Keyboard.Key;
+    private decorations: Phaser.Physics.Arcade.StaticGroup;
 
     constructor() {
         super({ key: 'MainScene' });
     }
 
+    /**
+     * 预加载资源
+     */
     preload(): void {
         // 添加加载事件监听器
         this.load.on('complete', () => {
@@ -97,6 +106,9 @@ export class MainScene extends Scene {
         }
     }
 
+    /**
+     * 创建场景
+     */
     create(): void {
         this.createAnimations();
         this.createTilemap();
@@ -115,90 +127,9 @@ export class MainScene extends Scene {
         });
     }
 
-    private createAnimations(): void {
-        // 创建动画
-        this.anims.create({
-            key: 'idle',
-            frames: this.anims.generateFrameNumbers('samurai_idle', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'walk',
-            frames: this.anims.generateFrameNumbers('samurai_walk', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'attack',
-            frames: this.anims.generateFrameNumbers('samurai_attack', { start: 0, end: 3 }),
-            frameRate: 12,
-            repeat: 0
-        });
-
-        this.anims.create({
-            key: 'defend',
-            frames: this.anims.generateFrameNumbers('samurai_defend', { start: 0, end: 0 }),
-            frameRate: 8,
-            repeat: -1
-        });
-
-        // 创建敌人动画
-        this.anims.create({
-            key: 'bandit_idle',
-            frames: this.anims.generateFrameNumbers('bandit_idle', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'bandit_walk',
-            frames: this.anims.generateFrameNumbers('bandit_walk', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'bandit_attack',
-            frames: this.anims.generateFrameNumbers('bandit_attack', { start: 0, end: 3 }),
-            frameRate: 12,
-            repeat: 0
-        });
-
-        this.anims.create({
-            key: 'bandit_die',
-            frames: this.anims.generateFrameNumbers('bandit_die', { start: 0, end: 3 }),
-            frameRate: 8,
-            repeat: 0
-        });
-    }
-
-    private createPlayer(): void {
-        const startPosition = { x: 200, y: 200 };
-        this.player = new Player(this, startPosition.x, startPosition.y);
-        this.add.existing(this.player);
-    }
-
-    private createDebugText(): void {
-        const style = {
-            fontSize: '16px',
-            color: '#ffffff',
-            backgroundColor: '#000000'
-        };
-        
-        this.debugText = this.add.text(10, 10, '', style);
-        this.debugText.setScrollFactor(0);
-    }
-
-    private createCharacterPanel(): void {
-        this.characterPanel = new CharacterPanel(this);
-        if (this.player) {
-            this.characterPanel.updateStats(this.player.getStats());
-        }
-    }
-
+    /**
+     * 创建地图
+     */
     private createTilemap(): void {
         // 创建地图
         const map = this.make.tilemap({
@@ -293,12 +224,48 @@ export class MainScene extends Scene {
         });
     }
 
+    /**
+     * 创建玩家角色
+     */
+    private createPlayer(): void {
+        const startPosition = { x: 200, y: 200 };
+        this.player = new Player(this, startPosition.x, startPosition.y);
+        this.add.existing(this.player);
+    }
+
+    /**
+     * 创建调试文本
+     */
+    private createDebugText(): void {
+        const style = {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#000000'
+        };
+        
+        this.debugText = this.add.text(10, 10, '', style);
+        this.debugText.setScrollFactor(0);
+    }
+
+    /**
+     * 创建角色面板
+     */
+    private createCharacterPanel(): void {
+        this.characterPanel = new CharacterPanel(this);
+        if (this.player) {
+            this.characterPanel.updateStats(this.player.getStats());
+        }
+    }
+
+    /**
+     * 创建敌人
+     */
     private createEnemies(): void {
         // 创建几个敌人在不同位置
         const enemyPositions = [
             { x: 300, y: 150 },
             { x: 500, y: 300 },
-            { x: 150, y: 400 }
+            { x: 250, y: 400 }
         ];
 
         enemyPositions.forEach(pos => {
@@ -327,6 +294,72 @@ export class MainScene extends Scene {
         });
     }
 
+    /**
+     * 创建动画
+     */
+    private createAnimations(): void {
+        // 创建玩家动画
+        this.anims.create({
+            key: 'idle',
+            frames: this.anims.generateFrameNumbers('samurai_idle', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk',
+            frames: this.anims.generateFrameNumbers('samurai_walk', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'attack',
+            frames: this.anims.generateFrameNumbers('samurai_attack', { start: 0, end: 3 }),
+            frameRate: 12,
+            repeat: 0
+        });
+
+        this.anims.create({
+            key: 'defend',
+            frames: this.anims.generateFrameNumbers('samurai_defend', { start: 0, end: 0 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        // 创建敌人动画
+        this.anims.create({
+            key: 'bandit_idle',
+            frames: this.anims.generateFrameNumbers('bandit_idle', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'bandit_walk',
+            frames: this.anims.generateFrameNumbers('bandit_walk', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'bandit_attack',
+            frames: this.anims.generateFrameNumbers('bandit_attack', { start: 0, end: 3 }),
+            frameRate: 12,
+            repeat: 0
+        });
+
+        this.anims.create({
+            key: 'bandit_die',
+            frames: this.anims.generateFrameNumbers('bandit_die', { start: 0, end: 3 }),
+            frameRate: 8,
+            repeat: 0
+        });
+    }
+
+    /**
+     * 场景更新
+     */
     update(): void {
         if (this.player && this.debugText) {
             this.player.update();

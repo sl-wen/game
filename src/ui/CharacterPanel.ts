@@ -1,14 +1,18 @@
 import { Scene } from 'phaser';
 import { CharacterStats } from '../config/GameConfig';
 
+/**
+ * 角色面板类
+ * 显示角色的属性信息和状态
+ */
 export class CharacterPanel {
-    private scene: Scene;
-    private container: Phaser.GameObjects.Container;
-    private background: Phaser.GameObjects.Rectangle;
+    private scene: Scene;          // 场景引用
+    private container: Phaser.GameObjects.Container;  // 容器对象
+    private background: Phaser.GameObjects.Rectangle; // 背景
     private panelBorder: Phaser.GameObjects.Rectangle;
-    private statsText: Phaser.GameObjects.Text;
-    private visible: boolean = false;
-    private stats?: CharacterStats;
+    private statsText: Phaser.GameObjects.Text;      // 属性文本
+    private visible: boolean = false;      // 显示状态
+    private stats?: CharacterStats;        // 角色属性
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -100,9 +104,13 @@ export class CharacterPanel {
         ]);
 
         // 默认隐藏
-        this.container.setVisible(false);
+        this.hide();
     }
 
+    /**
+     * 更新角色属性
+     * @param stats 角色属性对象
+     */
     updateStats(stats: CharacterStats): void {
         this.stats = stats;
         if (this.visible) {
@@ -110,6 +118,9 @@ export class CharacterPanel {
         }
     }
 
+    /**
+     * 更新显示内容
+     */
     private updateDisplay(): void {
         if (!this.stats) return;
 
@@ -125,20 +136,57 @@ export class CharacterPanel {
         this.statsText.setText(text);
     }
 
-    toggle(): void {
-        this.visible = !this.visible;
-        this.container.setVisible(this.visible);
+    /**
+     * 显示面板
+     */
+    show(): void {
+        this.visible = true;
+        this.container.setVisible(true);
         if (this.visible) {
             this.updateDisplay();
         }
     }
 
+    /**
+     * 隐藏面板
+     */
+    hide(): void {
+        this.visible = false;
+        this.container.setVisible(false);
+    }
+
+    /**
+     * 切换显示状态
+     */
+    toggle(): void {
+        if (this.visible) {
+            this.hide();
+        } else {
+            this.show();
+        }
+    }
+
+    /**
+     * 获取当前显示状态
+     */
     isVisible(): boolean {
         return this.visible;
     }
 
+    /**
+     * 设置面板位置
+     * @param x X坐标
+     * @param y Y坐标
+     */
     updatePosition(x: number, y: number): void {
         // 跟随玩家位置，但保持固定偏移
         this.container.setPosition(x, y);
+    }
+
+    /**
+     * 销毁面板
+     */
+    destroy(): void {
+        this.container.destroy();
     }
 } 
