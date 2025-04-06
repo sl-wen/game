@@ -101,6 +101,9 @@ export class MainScene extends Scene {
                 { frameWidth: 16, frameHeight: 16 }
             );
 
+            // 加载升级特效
+            this.load.image('level_up_effect', 'assets/effects/level_up.png');
+
         } catch (error) {
             console.error('资源加载过程中发生错误:', error);
         }

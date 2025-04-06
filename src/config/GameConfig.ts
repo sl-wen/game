@@ -38,8 +38,8 @@ export interface CharacterStats {
     exp: number;            // 经验值
     attackDamage: number;   // 攻击力
     defense: number;        // 防御力
-    moveSpeed: number;     // 移动速度
-    attackRange: number;   // 攻击距离
+    moveSpeed: number;      // 移动速度
+    attackRange: number;    // 攻击距离
 }
 
 /**

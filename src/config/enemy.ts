@@ -8,6 +8,7 @@ export interface EnemyAIConfig {
     patrolWaitTime: number;   // 巡逻等待时间
     chaseSpeed: number;       // 追击速度倍率
     attackCooldown: number;   // 攻击冷却时间
+    respawnTime: number;      // 重生时间（毫秒）
 }
 
 /**
@@ -53,7 +54,7 @@ export const BANDIT_CONFIG: EnemyConfig = {
         moveSpeed: 50,        // 移动速度
         detectionRange: 100,  // 检测范围
         attackRange: 20,      // 攻击范围
-        exp: 0
+        exp: 50              // 击杀获得经验值
     },
     
     // AI行为配置
@@ -61,7 +62,8 @@ export const BANDIT_CONFIG: EnemyConfig = {
         patrolRadius: 100,     // 巡逻半径
         patrolWaitTime: 2000,  // 巡逻间隔时间（毫秒）
         chaseSpeed: 1.5,       // 追击速度倍率
-        attackCooldown: 1000   // 攻击冷却时间（毫秒）
+        attackCooldown: 1000,  // 攻击冷却时间（毫秒）
+        respawnTime: 5000      // 重生时间（5秒）
     }
 };
 
@@ -81,15 +83,16 @@ export const ENEMY_CONFIG: EnemyConfig = {
         attackDamage: 10,
         defense: 5,
         level: 1,
-        exp: 10,
-        moveSpeed: 50,     // 敌人移动速度
-        attackRange: 32,    // 敌人攻击距离
-        detectionRange: 150 // 敌人检测范围
+        exp: 30,             // 击杀获得经验值
+        moveSpeed: 50,       // 敌人移动速度
+        attackRange: 32,     // 敌人攻击距离
+        detectionRange: 150  // 敌人检测范围
     },
     ai: {
         patrolRadius: 100,
         patrolWaitTime: 2000,
         attackCooldown: 1000,
-        chaseSpeed: 1.2    // 追击时的速度倍率
+        chaseSpeed: 1.2,    // 追击时的速度倍率
+        respawnTime: 5000   // 重生时间（5秒）
     }
 }; 

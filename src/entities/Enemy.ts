@@ -471,9 +471,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         this.isDead = true;
         this.state = 'idle';
         
-        // 停止AI更新
-        if (this.updateTimer) {
-            this.updateTimer.destroy();
+        // 给玩家奖励经验值
+        if (this.player) {
+            this.player.gainExp(this.stats.exp);
         }
         
         // 停止所有移动
@@ -486,18 +486,53 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         
         // 播放死亡动画
         this.play('bandit_die', true).once('animationcomplete', () => {
-            // 从敌人数组中移除
-            const scene = this.scene as any;
-            if (scene.enemies) {
-                const index = scene.enemies.indexOf(this);
-                if (index > -1) {
-                    scene.enemies.splice(index, 1);
-                }
-            }
+            // 隐藏敌人
+            this.setVisible(false);
+            this.body.enable = false;
             
-            // 销毁对象
-            this.destroy();
+            // 设置重生计时器
+            this.scene.time.delayedCall(
+                this.config.ai.respawnTime,
+                () => this.respawn(),
+                [],
+                this
+            );
         });
+    }
+
+    // 添加重生方法
+    private respawn(): void {
+        // 重置状态
+        this.isDead = false;
+        this.isAttacking = false;
+        this.stats.currentHealth = this.stats.maxHealth;
+        
+        // 重置位置到出生点
+        this.setPosition(this.spawnPoint.x, this.spawnPoint.y);
+        
+        // 重新显示敌人
+        this.setVisible(true);
+        this.body.enable = true;
+        
+        // 重置动画
+        this.play('bandit_idle', true);
+        
+        // 重置状态
+        this.setEnemyState('idle');
+        
+        // 重新显示UI元素
+        this.updateHealthBar();
+        this.updateStateText();
+        
+        // 重新启动AI
+        if (!this.updateTimer) {
+            this.updateTimer = this.scene.time.addEvent({
+                delay: 100,
+                callback: this.updateAI,
+                callbackScope: this,
+                loop: true
+            });
+        }
     }
 
     // 重写基类的setState方法以满足类型要求

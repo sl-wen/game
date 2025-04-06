@@ -14,6 +14,11 @@ export class CharacterPanel {
     private visible: boolean = false;      // 显示状态
     private stats?: CharacterStats;        // 角色属性
 
+    // 添加经验值计算方法
+    private calculateExpToNextLevel(level: number): number {
+        return Math.floor(100 * Math.pow(1.5, level - 1));
+    }
+
     constructor(scene: Scene) {
         this.scene = scene;
         this.container = scene.add.container(0, 0);
@@ -22,7 +27,7 @@ export class CharacterPanel {
         // 获取面板尺寸
         const panelWidth = 180;
         const panelHeight = 280;
-        const offsetX = 100;
+        const offsetX = -290;
         const offsetY = 0;
 
         // 创建像素风格背景
@@ -124,13 +129,18 @@ export class CharacterPanel {
     private updateDisplay(): void {
         if (!this.stats) return;
 
+        // 计算升级所需经验值
+        const expToNextLevel = Math.floor(100 * Math.pow(1.5, this.stats.level - 1));
+        const expPercentage = Math.floor((this.stats.exp / expToNextLevel) * 100);
+
         const text = [
             `等级: ${this.stats.level}`,
             `生命: ${this.stats.currentHealth}/${this.stats.maxHealth}`,
             `魔法: ${this.stats.mp}/${this.stats.maxMp}`,
-            `经验: ${this.stats.exp}`,
+            `经验: ${this.stats.exp}/${expToNextLevel} (${expPercentage}%)`,
             `攻击力: ${this.stats.attackDamage}`,
-            `防御力: ${this.stats.defense}`
+            `防御力: ${this.stats.defense}`,
+            `移动速度: ${this.stats.moveSpeed}`
         ].join('\n');
 
         this.statsText.setText(text);

@@ -431,26 +431,88 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setAlpha(0.5);
   }
 
-  // 获取调试信息
-  getDebugInfo(): string[] {
-    if (this.isDead) {
-      return [
-        `Position: (${Math.floor(this.x)}, ${Math.floor(this.y)})`,
-        'Status: Dead',
-        `Level: ${this.stats.level}`,
-        `HP: 0/${this.stats.maxHealth}`,
-        `MP: ${this.stats.mp}/${this.stats.maxMp}`
-      ];
-    }
+  // 添加升级所需经验值计算方法
+  private calculateExpToNextLevel(level: number): number {
+    return Math.floor(100 * Math.pow(1.5, level - 1));
+  }
 
-    const body = this.body as Phaser.Physics.Arcade.Body;
-    return [
-      `Position: (${Math.floor(this.x)}, ${Math.floor(this.y)})`,
-      `Velocity: (${Math.floor(body.velocity.x)}, ${Math.floor(body.velocity.y)})`,
-      `Level: ${this.stats.level}`,
-      `HP: ${this.stats.currentHealth}/${this.stats.maxHealth}`,
-      `MP: ${this.stats.mp}/${this.stats.maxMp}`
-    ];
+  // 添加获得经验值的方法
+  public gainExp(exp: number): void {
+    if (this.isDead) return;
+    
+    this.stats.exp += exp;
+    const expToNextLevel = this.calculateExpToNextLevel(this.stats.level);
+    
+    // 检查是否可以升级
+    while (this.stats.exp >= expToNextLevel) {
+        this.levelUp();
+    }
+  }
+
+  // 添加升级方法
+  private levelUp(): void {
+    const expToNextLevel = this.calculateExpToNextLevel(this.stats.level);
+    this.stats.exp -= expToNextLevel;
+    this.stats.level++;
+    
+    // 提升属性
+    this.stats.maxHealth += 20;
+    this.stats.currentHealth = this.stats.maxHealth;  // 升级时恢复满血
+    this.stats.maxMp += 10;
+    this.stats.mp = this.stats.maxMp;  // 升级时恢复满蓝
+    this.stats.attackDamage += 5;
+    this.stats.defense += 2;
+    this.stats.moveSpeed += 5;
+    
+    // 创建升级特效
+    const particles = this.scene.add.particles(this.x, this.y, 'level_up_effect', {
+        speed: 100,
+        scale: { start: 1, end: 0 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 1000,  // 特效持续3秒
+        blendMode: 'ADD',
+        quantity: 30,     // 每次发射1个粒子
+        frequency: 200   // 每200毫秒发射一次
+    });
+    
+    // 3秒后销毁粒子系统
+    this.scene.time.delayedCall(3000, () => {
+        particles.destroy();
+    });
+    
+    // 显示升级文本
+    const levelUpText = this.scene.add.text(this.x, this.y - 20, '升级!', {
+        fontSize: '16px',
+        fontFamily: '"Microsoft YaHei", "PingFang SC", sans-serif',
+        color: '#ffff00',
+        stroke: '#000000',
+        strokeThickness: 4
+    });
+    levelUpText.setOrigin(0.5);
+    
+    // 文本动画持续3秒
+    this.scene.tweens.add({
+        targets: levelUpText,
+        y: levelUpText.y - 30,
+        alpha: 0,
+        duration: 3000,
+        ease: 'Power2',
+        onComplete: () => levelUpText.destroy()
+    });
+  }
+
+  // 修改获取调试信息的方法，添加经验值信息
+  public getDebugInfo(): string {
+    const expToNextLevel = this.calculateExpToNextLevel(this.stats.level);
+    return `
+        生命: ${this.stats.currentHealth}/${this.stats.maxHealth}
+        魔法: ${this.stats.mp}/${this.stats.maxMp}
+        等级: ${this.stats.level}
+        经验: ${this.stats.exp}/${expToNextLevel} (${Math.floor((this.stats.exp / expToNextLevel) * 100)}%)
+        攻击: ${this.stats.attackDamage}
+        防御: ${this.stats.defense}
+        速度: ${this.stats.moveSpeed}
+    `.trim();
   }
 
   private updateDebugDisplay(): void {
