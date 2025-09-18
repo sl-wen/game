@@ -1,4 +1,6 @@
-namespace dst_mvp;
+using DstMvp.Gameplay;
+
+namespace DstMvp;
 
 class Program
 {

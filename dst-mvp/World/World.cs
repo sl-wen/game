@@ -1,4 +1,6 @@
-namespace dst_mvp;
+using DstMvp.Models;
+
+namespace DstMvp.GameWorld;
 
 // 地图瓦片类型：空地、树、灌木与营火
 enum TileType
