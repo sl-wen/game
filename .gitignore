@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors/IDEs
+.vscode/
+.idea/
+.vs/
+
+# .NET build output
+**/bin/
+**/obj/
+**/artifacts/
+**/TestResults/
+
+# Packages
+.nuget/
+**/packages/
+*.nupkg
+*.snupkg
+
+# Logs and caches
+*.log
+**/.cache/
+
+# Coverage
+**/coverage/
+*.coverage
+*.coveragexml
+
+# User-specific files
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
+
+# Environment files
+.env
+.env.*
+
