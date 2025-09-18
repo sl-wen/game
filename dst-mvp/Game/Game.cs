@@ -1,32 +1,37 @@
 using System.Text;
+using DstMvp.GameWorld;
+using DstMvp.Models;
 
-namespace dst_mvp;
+namespace DstMvp.Gameplay;
 
+// 时间阶段：白天/夜晚
 enum TimePhase
 {
 	Day,
 	Night
 }
 
+// 游戏主循环与输入/更新/渲染逻辑
 class Game
 {
-	private const int TargetTicksPerSecond = 10;
-	private const double SecondsPerTick = 1.0 / TargetTicksPerSecond;
-	private const double DayLengthSeconds = 120.0;
+	private const int TargetTicksPerSecond = 10; // 每秒目标逻辑帧数
+	private const double SecondsPerTick = 1.0 / TargetTicksPerSecond; // 每帧时长（秒）
+	private const double DayLengthSeconds = 120.0; // 一个昼夜循环的时长（秒）
 
-	private readonly World _world;
-	private readonly Player _player;
-	private double _timeOfDaySeconds;
-	private bool _running;
+	private readonly World _world; // 世界地图
+	private readonly Player _player; // 玩家实例
+	private double _timeOfDaySeconds; // 当前昼夜时间（循环）
+	private bool _running; // 游戏是否继续运行
 
 	public Game()
 	{
-		_world = new World(30, 15);
-		_player = new Player(_world.SpawnX, _world.SpawnY);
+		_world = new World(30, 15); // 创建一个 30x15 的世界
+		_player = new Player(_world.SpawnX, _world.SpawnY); // 玩家出生在地图中心
 		_timeOfDaySeconds = 0;
 		_running = true;
 	}
 
+	// 主循环：处理输入、更新逻辑、渲染输出，并维持固定步进
 	public void Run()
 	{
 		DateTime nextTick = DateTime.UtcNow;
@@ -44,11 +49,12 @@ class Game
 			}
 			else
 			{
-				nextTick = DateTime.UtcNow;
+				nextTick = DateTime.UtcNow; // 若掉帧则重置节拍
 			}
 		}
 	}
 
+	// 输入处理：WASD 移动，E 采集，F 篝火，T 火把，L 切换火把，Q 退出
 	private void HandleInput()
 	{
 		while (Console.KeyAvailable)
@@ -87,6 +93,7 @@ class Game
 		}
 	}
 
+	// 试图移动玩家，若目标格在边界内且可行走则更新坐标
 	private void TryMove(int dx, int dy)
 	{
 		int nx = _player.X + dx;
@@ -98,6 +105,7 @@ class Game
 		}
 	}
 
+	// 采集：先采集脚下，再采集四邻格
 	private void Gather()
 	{
 		// Gather from current tile first, then adjacent tiles
@@ -108,6 +116,7 @@ class Game
 		CollectFrom(_player.X, _player.Y - 1);
 	}
 
+	// 从指定格尝试采集，若有掉落则加入背包
 	private void CollectFrom(int x, int y)
 	{
 		if (!_world.InBounds(x, y)) return;
@@ -118,6 +127,7 @@ class Game
 		}
 	}
 
+	// 制作篝火：消耗 3 木材，在当前位置放置，持续 60 秒
 	private void CraftCampfire()
 	{
 		if (_player.Inventory.TryConsume(ItemType.Wood, 3))
@@ -126,6 +136,7 @@ class Game
 		}
 	}
 
+	// 制作火把：若未拥有且木材足够（2 木），则获得火把
 	private void CraftTorch()
 	{
 		if (_player.HasTorch) return;
@@ -135,6 +146,7 @@ class Game
 		}
 	}
 
+	// 切换火把点燃状态：需要拥有火把且仍有燃烧时间
 	private void ToggleTorch()
 	{
 		if (!_player.HasTorch) return;
@@ -142,12 +154,13 @@ class Game
 		_player.TorchLit = !_player.TorchLit;
 	}
 
+	// 每帧更新：推进昼夜时间、更新世界、结算饥饿与黑暗伤害、消耗火把时间
 	private void Update(double dt)
 	{
 		_timeOfDaySeconds += dt;
 		if (_timeOfDaySeconds >= DayLengthSeconds)
 		{
-			_timeOfDaySeconds -= DayLengthSeconds;
+			_timeOfDaySeconds -= DayLengthSeconds; // 循环归零
 		}
 
 		_world.Update(dt);
@@ -156,18 +169,20 @@ class Game
 		bool hasLight = _world.HasLightNear(_player.X, _player.Y, radius: 4) || (_player.TorchLit && _player.TorchTimeLeft > 0);
 		bool inDarkness = isNight && !hasLight;
 
-		// Hunger drains always
+		// 饥饿值持续下降
 		_player.Hunger = Math.Max(0, _player.Hunger - 0.02);
 		if (_player.Hunger <= 0)
 		{
 			_player.Health = Math.Max(0, _player.Health - 0.2);
 		}
 
+		// 夜晚且无光照时掉血
 		if (inDarkness)
 		{
 			_player.Health = Math.Max(0, _player.Health - 0.2);
 		}
 
+		// 若火把点燃则消耗剩余时间，用尽后自动熄灭
 		if (_player.TorchLit && _player.TorchTimeLeft > 0)
 		{
 			_player.TorchTimeLeft = Math.Max(0, _player.TorchTimeLeft - dt);
@@ -177,12 +192,14 @@ class Game
 			}
 		}
 
+		// 生命降至 0 则结束游戏
 		if (_player.Health <= 0)
 		{
 			_running = false;
 		}
 	}
 
+	// 昼夜判定：简单比例切分，白天占 70%，夜晚占 30%
 	private TimePhase GetPhase()
 	{
 		// Simple split: 70% day, 30% night
@@ -190,6 +207,7 @@ class Game
 		return ratio < 0.7 ? TimePhase.Day : TimePhase.Night;
 	}
 
+	// 渲染：绘制地图字符与 HUD 信息
 	private void Render()
 	{
 		Console.SetCursorPosition(0, 0);
@@ -199,7 +217,7 @@ class Game
 			for (int x = 0; x < _world.Width; x++)
 			{
 				char ch = _world.GetGlyphAt(x, y);
-				if (x == _player.X && y == _player.Y) ch = '@';
+				if (x == _player.X && y == _player.Y) ch = '@'; // 玩家位置标记
 				sb.Append(ch);
 			}
 			sb.Append('\n');
