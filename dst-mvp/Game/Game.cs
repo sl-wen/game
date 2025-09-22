@@ -57,7 +57,8 @@ class Game
 	// 输入处理：WASD 移动，E 采集，F 篝火，T 火把，L 切换火把，Q 退出
 	private void HandleInput()
 	{
-		while (Console.KeyAvailable)
+		// 检查是否可以读取按键（处理重定向输入的情况）
+		if (!Console.IsInputRedirected && Console.KeyAvailable)
 		{
 			var key = Console.ReadKey(true).Key;
 			switch (key)
